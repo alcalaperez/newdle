@@ -21,7 +21,7 @@ from .core.util import (
 )
 from .core.webargs import abort, use_args, use_kwargs
 from .models import Newdle, Participant
-from .notifications import notify_newdle_participants
+from .notifications import notify_newdle_participants, notify_newdle_creator
 from .schemas import (
     MyNewdleSchema,
     NewdleParticipantSchema,
@@ -357,6 +357,21 @@ def update_participant(args, code, participant_code):
     for key, value in args.items():
         setattr(participant, key, value)
     db.session.commit()
+    if participant.newdle.notify:
+        notify_newdle_creator(
+            participant.newdle,
+            participant,
+            f'{participant.name} joined to {participant.newdle.title}',
+            'joined_email.txt',
+            'joined_email.html',
+            lambda p: {
+                'participant': participant.name,
+                'title': participant.newdle.title,
+                'answer_link': url_for(
+                    'newdle', code=Newdle.code, participant_code=p.code, _external=True
+                ),
+            },
+        )
     return ParticipantSchema().jsonify(participant)
 
 
@@ -389,7 +404,7 @@ def create_participant(code):
             name=name, email=g.user['email'], auth_uid=g.user['uid']
         )
         newdle.participants.add(participant)
-        db.session.commit()
+        db.session.commit()        
     return ParticipantSchema().jsonify(participant)
 
 

@@ -13,10 +13,11 @@ def notify_newdle_participants(
     sender_name = newdle.creator_name
     reply_to = g.user['email']  # XXX this is kind of ugly
     emails = [
-        create_participant_email(
+        create_email(
             participant,
             sender_name,
             reply_to,
+            participant.email,
             subject,
             text_template,
             html_template,
@@ -31,7 +32,7 @@ def notify_newdle_creator(participant, subject, text_template, html_template, co
     creator_email = participant.newdle.creator_email
     sender_name = current_app.config['NOREPLY_ADDRESS']
 
-    email = create_creator_email(
+    email = create_email(
         participant,
         sender_name,
         participant.email,
@@ -50,10 +51,11 @@ def send_emails(emails):
         return conn.send_messages(emails)
 
 
-def create_participant_email(
+def create_email(
     participant,
     sender_name,
     sender_email,
+    emails_recipient,
     subject,
     text_template,
     html_template,
@@ -68,33 +70,7 @@ def create_participant_email(
         subject,
         text_content,
         from_email=from_email,
-        to=[participant.email],
-        reply_to=[sender_email],
-    )
-    msg.attach_alternative(html_content, 'text/html')
-    return msg
-
-
-def create_creator_email(
-    participant,
-    sender_name,
-    sender_email,
-    creator_email,
-    subject,
-    text_template,
-    html_template,
-    context,
-):
-    text_content = render_template(text_template, **context)
-    html_content = render_template(html_template, **context)
-    noreply_email = current_app.config['NOREPLY_ADDRESS']
-    sender_name = sender_name.replace('"', '')
-    from_email = f'"{sender_name} (via newdle)" <{noreply_email}>'
-    msg = EmailMultiAlternatives(
-        subject,
-        text_content,
-        from_email=from_email,
-        to=[creator_email],
+        to=[emails_recipient],
         reply_to=[sender_email],
     )
     msg.attach_alternative(html_content, 'text/html')
